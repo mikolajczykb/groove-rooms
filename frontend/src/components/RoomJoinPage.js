@@ -9,6 +9,7 @@ class RoomJoinPage extends Component {
             roomCode: "",
             error: "",
         }
+
     }
 
     handleTextFieldChange = (e) => {
@@ -17,7 +18,7 @@ class RoomJoinPage extends Component {
         });
     }
 
-    roomButtonPressed = async() => {
+    roomButtonPressed = () => {
         const requestOptions = {
             method: 'POST',
             headers: {"Content-Type": "application/json"},
@@ -25,18 +26,17 @@ class RoomJoinPage extends Component {
                 code: this.state.roomCode
             })
         };
-        try {
-            const response = await fetch('/api/join-room', requestOptions);
+        fetch("/api/join-room", requestOptions)
+          .then((response) => {
             if (response.ok) {
-                this.props.history.push(`/room/${this.state.roomCode}`);
+              this.props.history.push(`/room/${this.state.roomCode}`);
             } else {
-                this.setState({
-                    error: "Room not found."
-                });
+              this.setState({ error: "Room not found." });
             }
-        } catch(error) {
+          })
+          .catch((error) => {
             console.log(error);
-        }
+          });
 
     }
 

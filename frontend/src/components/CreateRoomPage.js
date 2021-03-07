@@ -12,6 +12,13 @@ import FormControlLabel from "@material-ui/core/FormControlLabel";
 import { Collapse } from "@material-ui/core";
 import { Alert } from "@material-ui/lab";
 
+function pausecomp(millis)
+{
+    var date = new Date();
+    var curDate = null;
+    do { curDate = new Date(); }
+    while(curDate-date < millis);
+}
 
 class CreateRoomPage extends Component {
 
@@ -33,6 +40,7 @@ class CreateRoomPage extends Component {
             errorMsg: "",
             successMsg: "",
         };
+
     }
 
     handleVotesChange = (e) => {
@@ -47,7 +55,7 @@ class CreateRoomPage extends Component {
         });
     }
 
-    handleRoomButtonPressed = async () => {
+    handleRoomButtonPressed = () => {
         const requestOptions = {
             method: 'POST',
             headers: {
@@ -58,12 +66,14 @@ class CreateRoomPage extends Component {
                 guest_can_pause: this.state.guestCanPause,
             })
         };
-        const response = await fetch('/api/create-room', requestOptions);
-        const data = await response.json();
-        this.props.history.push("/room/" + data.code);
+        fetch('/api/create-room', requestOptions)
+            .then((response) => response.json())
+            .then((data) => {
+                this.props.history.push("/room/" + data.code);
+            });
     }
 
-    handleUpdateButtonPressed = async () => {
+    handleUpdateButtonPressed = () => {
         const requestOptions = {
             method: 'PATCH',
             headers: {
@@ -75,17 +85,18 @@ class CreateRoomPage extends Component {
                 code: this.props.roomCode,
             }),
         };
-        const response = await fetch('/api/update-room', requestOptions);
-        if (response.ok) {
+         fetch("/api/update-room", requestOptions).then((response) => {
+          if (response.ok) {
             this.setState({
-                successMsg: "You have updated successfully!"
-            })
-        } else {
+              successMsg: "Room updated successfully!",
+            });
+          } else {
             this.setState({
-                errorMsg: "Error updating room..."
-            })
-        }
-        this.props.updateCallback();
+              errorMsg: "Error updating room...",
+            });
+          }
+          this.props.updateCallback();
+        });
     }
 
     renderCreateButtons = () => {

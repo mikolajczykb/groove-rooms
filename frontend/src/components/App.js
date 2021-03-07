@@ -18,14 +18,18 @@ class App extends Component {
         this.state = {
             roomCode: null,
         }
+
+
     }
 
     async componentDidMount() {
-        const response = await fetch('/api/user-in-room');
-        const data = await response.json();
-        this.setState({
-            roomCode: data.code,
-        })
+        fetch('/api/user-in-room')
+            .then((response) => response.json())
+            .then((data) => {
+                this.setState({
+                    roomCode: data.code,
+                });
+            });
     }
 
     clearRoomCode = () => {
@@ -35,6 +39,8 @@ class App extends Component {
     }
 
     render() {
+
+
         return(<div class="center">
             <Router>
                 <Switch>

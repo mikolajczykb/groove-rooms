@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { Typography, Grid, Button } from "@material-ui/core";
 import CreateRoomPage from "./CreateRoomPage";
 import {Create} from "@material-ui/icons";
+import MusicPlayer from "./MusicPlayer"
 
 class Room extends Component {
     constructor(props) {
@@ -11,36 +12,89 @@ class Room extends Component {
             guestCanPause: false,
             isHost: false,
             showSettings: false,
+            spotifyAuthenticated: false,
+            song: {}
         }
         this.roomCode = this.props.match.params.roomCode;
         this.getRoomDetails = this.getRoomDetails.bind(this);
         this.getRoomDetails();
     }
 
-    getRoomDetails = async () => {
-        const response = await fetch('/api/get-room' + '?code=' + this.roomCode);
-        if (!response.ok) {
-            this.props.leaveRoomCallback();
-            this.props.history.push('/');
-        }
-        const data = await response.json();
-        this.setState({
-            votesToSkip: data.votes_to_skip,
-            guestCanPause: data.guest_can_pause,
-            isHost: data.is_host,
-        });
+    componentDidMount = () => {
+        this.interval = setInterval(this.getCurrentSong, 1000);
     }
 
-    leaveButtonPressed = async () => {
+    componentWillUnmount = () => {
+        clearInterval(this.interval);
+    }
+
+
+    getRoomDetails = () => {
+        return fetch("/api/get-room" + "?code=" + this.roomCode)
+          .then((response) => {
+            console.log(response)
+            if (!response.ok) {
+              this.props.leaveRoomCallback();
+              this.props.history.push("/");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            this.setState({
+              votesToSkip: data.votes_to_skip,
+              guestCanPause: data.guest_can_pause,
+              isHost: data.is_host,
+            });
+            if (this.state.isHost && !this.state.spotifyAuthenticated) {
+               this.authenticateSpotify();
+            }
+          });
+    }
+
+    authenticateSpotify = () => {
+        fetch('/spotify/is-authenticated')
+            .then((response) => response.json())
+            .then((data) => {
+                this.setState({
+                    spotifyAuthenticated: data.status
+                });
+                if (!data.status) {
+                    fetch('/spotify/get-auth-url')
+                        .then((response) => response.json())
+                        .then((data) => {
+                            window.location.replace(data.url);
+
+                        })
+                }
+            })
+    }
+
+    getCurrentSong = () => {
+        fetch('/spotify/current-song').then((response) => {
+            if (!response.ok) {
+                return {}
+            } else {
+                return response.json();
+            }
+        }).then((data) => {
+            this.setState({
+                song: data,
+            });
+            console.log(this.state.song)
+        })
+    }
+
+    leaveButtonPressed = () => {
         const requestOptions = {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
         };
-        const response = await fetch('/api/leave-room', requestOptions);
-        this.props.leaveRoomCallback();
-        this.props.history.push("/");
+        fetch("/api/leave-room", requestOptions).then((_response) => {
+          this.props.leaveRoomCallback();
+          this.props.history.push("/");
+        });
     }
 
     updateShowSettings = (value) => {
@@ -94,7 +148,23 @@ class Room extends Component {
                         Code: {this.roomCode}
                     </Typography>
                 </Grid>
+                <MusicPlayer {...this.state.song}/>
+                {this.state.isHost ? this.renderSettingsButton() : null}
                 <Grid item xs={12}>
+                    <Button variant={"contained"} color={"secondary"} onClick={this.leaveButtonPressed}>
+                        Leave Room
+                    </Button>
+                </Grid>
+            </Grid>
+
+        );
+    }
+}
+
+export default Room;
+
+/*
+<Grid item xs={12}>
                     <Typography variant={"h6"} component={"h6"}>
                         Votes: {this.state.votesToSkip}
                     </Typography>
@@ -109,16 +179,4 @@ class Room extends Component {
                         Host: {this.state.isHost.toString()}
                     </Typography>
                 </Grid>
-                {this.state.isHost ? this.renderSettingsButton() : null}
-                <Grid item xs={12}>
-                    <Button variant={"contained"} color={"secondary"} onClick={this.leaveButtonPressed}>
-                        Leave Room
-                    </Button>
-                </Grid>
-            </Grid>
-
-        );
-    }
-}
-
-export default Room;
+ */
